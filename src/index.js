@@ -13,7 +13,7 @@ function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers;
   const user = users.filter((item) => item.username === username);
 
-  if (!user.length) {
+  if (!user[0]) {
     return response.status(400).json({ error: "User not found" });
   }
 
@@ -24,15 +24,45 @@ function checksExistsUserAccount(request, response, next) {
 
 function checksCreateTodosUserAvailability(request, response, next) {
   const { user } = request;
-  if (!user.pro && user.todos.length >= 10) {
+
+  if (!user.pro && user[0].todos.length >= 10) {
     return response.json({ error: "All free limit reached!" });
   }
-  
-  return next()
+
+  request.user = user[0];
+
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+  const isUuid = validate(id);
+
+  if (!isUuid) {
+    return response.json({ error: "Id invalid" });
+  }
+
+  const user = users.filter((item) => item.username === username);
+
+  if (!user.length) {
+    return response.status(400).json({ error: "User not found" });
+  }
+
+  if (!user[0].todos.length) {
+    return response.status(400).json({ error: "User do not have todo" });
+  }
+
+  const todo = user[0].todos.filter((item) => item.id === id);
+  const confirmTodo = todo.filter((item) => item.id === id);
+
+  if (!confirmTodo.length) {
+    response.status(400).json({ error: "Todo not found" });
+  }
+
+  request.todo = confirmTodo[0]
+
+  return next()
 }
 
 function findUserById(request, response, next) {
