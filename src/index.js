@@ -13,11 +13,11 @@ function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers;
   const user = users.filter((item) => item.username === username);
 
-  if (!user[0]) {
-    return response.status(400).json({ error: "User not found" });
+  if (!user.length) {
+    return response.status(404).json({ error: "User not found" });
   }
 
-  request.user = user;
+  request.user = user[0];
 
   return next();
 }
@@ -25,13 +25,17 @@ function checksExistsUserAccount(request, response, next) {
 function checksCreateTodosUserAvailability(request, response, next) {
   const { user } = request;
 
-  if (!user.pro && user[0].todos.length >= 10) {
-    return response.json({ error: "All free limit reached!" });
+  if (!user) {
+    return response.status(403).json({ error: "User not found" });
   }
 
-  request.user = user[0];
+  if ((!user.pro && user.todos.length < 10) || user.pro) {
+    request.user = user;
 
-  return next();
+    return next();
+  }
+
+  return response.status(403).json({ error: "All free limit reached!" });
 }
 
 function checksTodoExists(request, response, next) {
@@ -40,27 +44,28 @@ function checksTodoExists(request, response, next) {
   const isUuid = validate(id);
 
   if (!isUuid) {
-    return response.json({ error: "Id invalid" });
+    return response.status(400).json({ error: "User not found" });
   }
 
   const user = users.filter((item) => item.username === username);
 
   if (!user.length) {
-    return response.status(400).json({ error: "User not found" });
+    return response.status(404).json({ error: "User not found" });
   }
 
   if (!user[0].todos.length) {
-    return response.status(400).json({ error: "User do not have todo" });
+    return response.status(404).json({ error: "User do not have todo" });
   }
 
   const todo = user[0].todos.filter((item) => item.id === id);
   const confirmTodo = todo.filter((item) => item.id === id);
 
   if (!confirmTodo.length) {
-    return response.status(400).json({ error: "Todo not found" });
+    return response.status(404).json({ error: "Todo not found" });
   }
 
   request.todo = confirmTodo[0];
+  request.user = user[0];
 
   return next();
 }
